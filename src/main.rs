@@ -30,8 +30,7 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
         -Zvalidate-mir=off
         -C embed-bitcode=no
         
-        -Zmir-opt-level=0
-        -Zmerge-functions=disabled
+
         ",
     );
     if use_cranelift {
