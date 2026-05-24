@@ -99,11 +99,11 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
     }
 
     if mold_available {
-        clean_flags.push_str(" -C link-arg=-fuse-ld=mold -C link-arg=-Wl,--threads=0,--icf=all");
+        clean_flags.push_str(" -C link-arg=-fuse-ld=mold -C link-arg=-Wl,--threads=0");
     } else {
         if let Ok(status) = Command::new("lld").arg("--version").status() {
             if status.success() {
-                clean_flags.push_str(" -C link-arg=-fuse-ld=lld -C link-arg=-Wl,--threads=0,--icf=all");
+                clean_flags.push_str(" -C link-arg=-fuse-ld=lld -C link-arg=-Wl,--threads=0");
             }
         }
     }
