@@ -67,13 +67,12 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
         -C embed-bitcode=no
 -Zcache-proc-macros         
 -C codegen-units=256
--C debug-assertions=no
--Zhint-mostly-unused
+
 -Zmacro-backtrace=off
--Zmir-enable-passes=-Inline
 -Zspan-debug=no
 -Zcross-crate-inline-threshold=0
 -Zvalidate-mir=no
+
 
         ",
     );
