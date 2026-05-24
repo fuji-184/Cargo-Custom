@@ -37,7 +37,10 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
         ",
     );
     if use_cranelift {
-        flags.push_str(" -Zcodegen-backend=cranelift");
+        flags.push_str(&" -Zcodegen-backend=cranelift
+-Zcranelift-jit
+
+".replace("\n", " "));
     } else {
         flags.push_str(&"
 
@@ -108,7 +111,6 @@ fn handle_miri_action(miri_action: &str, remaining_args: &[&str]) {
                       -Zmiri-preemption-rate=0 
                       -Zmiri-provenance-gc=0 
                       -Zmiri-no-extra-rounding-error
--Zcranelift-jit
 
 ".replace("\n", " ");
     let rust_flags = get_base_rust_flags(true);
