@@ -69,6 +69,7 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
 -C debug-assertions=no
 -Zmacro-backtrace=off
 -Zspan-debug=no
+-Znext-solver
 
         ",
     );
