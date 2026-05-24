@@ -29,14 +29,20 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
         -Zproc-macro-backtrace=off
         -Zvalidate-mir=off
         -C embed-bitcode=no
-        
-
+-Zcache-proc-macros         
+-C codegen-units=256
+-C debug-assertions=no
+-Zhint-mostly-unused
+-Zmacro-backtrace=off
+-Zmir-enable-passes=-Inline
+-Zspan-debug=no
         ",
     );
     if use_cranelift {
         flags.push_str(
             "
             -Zcodegen-backend=cranelift
+
             ",
         );
     } else {
@@ -44,6 +50,7 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
             "
             -C llvm-args=--inline-threshold=0
             -C no-prepopulate-passes
+            -Zinline-in-all-cgus=no
             ",
         );
     }
@@ -56,11 +63,11 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
     }
 
     if mold_available {
-        clean_flags.push_str(" -C link-arg=-fuse-ld=mold -C link-arg=-Wl,--threads=0");
+        clean_flags.push_str(" -C link-arg=-fuse-ld=mold -C link-arg=-Wl,--threads=0,--gc-sections,--icf=all");
     } else {
         if let Ok(status) = Command::new("lld").arg("--version").status() {
             if status.success() {
-                clean_flags.push_str(" -C link-arg=-fuse-ld=lld -C link-arg=-Wl,--threads=0");
+                clean_flags.push_str(" -C link-arg=-fuse-ld=lld -C link-arg=-Wl,--threads=0,--gc-sections,--icf=all");
             }
         }
     }
