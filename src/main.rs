@@ -66,9 +66,7 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
         -Zvalidate-mir=off
         -C embed-bitcode=no
 -Zcache-proc-macros         
--C codegen-units=256
 -C debug-assertions=no
--Zhint-mostly-unused
 -Zmacro-backtrace=off
 -Zspan-debug=no
 
