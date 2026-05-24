@@ -70,8 +70,7 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
 
 -Zmacro-backtrace=off
 -Zspan-debug=no
--Zcross-crate-inline-threshold=0
--Zvalidate-mir=no
+
 
 
         ",
