@@ -68,8 +68,7 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
 -Zcache-proc-macros         
 -C codegen-units=256
 
--Zmacro-backtrace=off
--Zspan-debug=no
+
 
 
 
