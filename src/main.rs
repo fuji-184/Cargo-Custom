@@ -114,7 +114,6 @@ fn handle_miri_action(miri_action: &str, remaining_args: &[&str]) {
     let rust_flags = get_base_rust_flags(false);
     cmd.env("MIRIFLAGS", miri_flags);
     cmd.env("RUSTFLAGS", rust_flags);
-    set_sccache_if_available(&mut cmd);
     cmd.args(remaining_args);
     let next_status = cmd.status();
     match next_status {
