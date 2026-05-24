@@ -65,11 +65,13 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
         -Zproc-macro-backtrace=off
         -Zvalidate-mir=off
         -C embed-bitcode=no
-
-
-
-
-
+-Zcache-proc-macros         
+-C codegen-units=256
+-C debug-assertions=no
+-Zhint-mostly-unused
+-Zmacro-backtrace=off
+-Zspan-debug=no
+-Zcross-crate-inline-threshold=0
 
         ",
     );
@@ -178,7 +180,7 @@ fn handle_cranelift_action(cranelift_action: &str, remaining_args: &[&str]) {
     let rust_flags = get_base_rust_flags(true);
     cmd.env("RUSTFLAGS", rust_flags);
     set_sccache_if_available(&mut cmd);
-    //set_mimalloc_if_available(&mut cmd);
+    set_mimalloc_if_available(&mut cmd);
     cmd.args(remaining_args);
     let next_status = cmd.status();
     match next_status {
