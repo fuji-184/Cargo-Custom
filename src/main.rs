@@ -16,6 +16,42 @@ fn run_clear() {
     }
 }
 
+fn set_mimalloc_if_available(cmd: &mut Command) {
+    let mut ldconfig_cmd = Command::new("ldconfig");
+    ldconfig_cmd.arg("-p");
+    
+    if let Ok(output) = ldconfig_cmd.output() {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                if line.contains("libmimalloc.so") {
+                    if let Some(arrow_idx) = line.rfind("=>") {
+                        let path = line[arrow_idx + 2..].trim();
+                        if std::path::Path::new(path).exists() {
+                            println!("found mimalloc");
+                            cmd.env("LD_PRELOAD", path);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    let common_paths = [
+        "/usr/lib/x86_64-linux-gnu/libmimalloc.so",
+        "/usr/local/lib/libmimalloc.so",
+        "/usr/lib/libmimalloc.so",
+    ];
+    for path in &common_paths {
+        if std::path::Path::new(path).exists() {
+            println!("found mimalloc");
+            cmd.env("LD_PRELOAD", path);
+            return;
+        }
+    }
+}
+
 fn get_base_rust_flags(use_cranelift: bool) -> String {
     let mut flags = String::from(
         "
@@ -36,6 +72,9 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
 -Zmacro-backtrace=off
 -Zmir-enable-passes=-Inline
 -Zspan-debug=no
+-Zcross-crate-inline-threshold=0
+-Zvalidate-mir=no
+
         ",
     );
     if use_cranelift {
@@ -89,6 +128,7 @@ fn handle_standard_action(action: &str, remaining_args: &[&str]) {
     let rust_flags = get_base_rust_flags(false);
     cmd.env("RUSTFLAGS", rust_flags);
     set_sccache_if_available(&mut cmd);
+    set_mimalloc_if_available(&mut cmd);
     cmd.args(remaining_args);
     let next_status = cmd.status();
     match next_status {
@@ -120,6 +160,7 @@ fn handle_miri_action(miri_action: &str, remaining_args: &[&str]) {
     let rust_flags = get_base_rust_flags(false);
     cmd.env("MIRIFLAGS", miri_flags);
     cmd.env("RUSTFLAGS", rust_flags);
+    set_mimalloc_if_available(&mut cmd);
     cmd.args(remaining_args);
     let next_status = cmd.status();
     match next_status {
@@ -141,6 +182,7 @@ fn handle_cranelift_action(cranelift_action: &str, remaining_args: &[&str]) {
     let rust_flags = get_base_rust_flags(true);
     cmd.env("RUSTFLAGS", rust_flags);
     set_sccache_if_available(&mut cmd);
+    set_mimalloc_if_available(&mut cmd);
     cmd.args(remaining_args);
     let next_status = cmd.status();
     match next_status {
