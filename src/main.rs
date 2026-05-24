@@ -19,35 +19,34 @@ fn run_clear() {
 fn get_base_rust_flags(use_cranelift: bool) -> String {
     let mut flags = String::from(
         "
-
         -Zthreads=0
         -Zshare-generics=y
-       -C debuginfo=0
--C prefer-dynamic
--C link-arg=-Wl,--threads=0
--C metadata=dev
--Zinline-mir=off
--Zproc-macro-backtrace=off
--Zvalidate-mir=off
--C embed-bitcode=no
--Zpolonius
--Zmir-opt-level=0
--Zmerge-functions=disabled
-
+        -C debuginfo=0
+        -C prefer-dynamic
+        -C link-arg=-Wl,--threads=0
+        -C metadata=dev
+        -Zinline-mir=off
+        -Zproc-macro-backtrace=off
+        -Zvalidate-mir=off
+        -C embed-bitcode=no
+        -Zpolonius
+        -Zmir-opt-level=0
+        -Zmerge-functions=disabled
         ",
     );
     if use_cranelift {
-        flags.push_str(&" -Zcodegen-backend=cranelift
--Zcranelift-jit
-
-".replace("\n", " "));
+        flags.push_str(
+            "
+            -Zcodegen-backend=cranelift
+            ",
+        );
     } else {
-        flags.push_str(&"
-
--C llvm-args=--inline-threshold=0
--C no-prepopulate-passes
-
-".replace("\n", " "));
+        flags.push_str(
+            "
+            -C llvm-args=--inline-threshold=0
+            -C no-prepopulate-passes
+            ",
+        );
     }
     let mut clean_flags = flags.replace("\n", " ");
     let mut mold_available = false;
@@ -111,9 +110,8 @@ fn handle_miri_action(miri_action: &str, remaining_args: &[&str]) {
                       -Zmiri-preemption-rate=0 
                       -Zmiri-provenance-gc=0 
                       -Zmiri-no-extra-rounding-error
-
 ".replace("\n", " ");
-    let rust_flags = get_base_rust_flags(true);
+    let rust_flags = get_base_rust_flags(false);
     cmd.env("MIRIFLAGS", miri_flags);
     cmd.env("RUSTFLAGS", rust_flags);
     set_sccache_if_available(&mut cmd);
