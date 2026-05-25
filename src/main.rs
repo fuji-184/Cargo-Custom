@@ -89,7 +89,6 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
     } else {
         flags.push_str(
             "
-            -C llvm-args=--inline-threshold=0
             -C no-prepopulate-passes
             ",
         );
