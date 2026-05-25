@@ -266,4 +266,58 @@ fn main() {
         let miri_action = args[3].as_str();
         match miri_action {
             "check" | "run" => {
-                let
+                let remaining_args: Vec<&str> = args.iter().skip(4).map(|s| s.as_str()).collect();
+                handle_miri_action(miri_action, &remaining_args);
+            }
+            _ => {
+                eprintln!("Unknown sub-command for 'miri': {}", miri_action);
+                eprintln!();
+                print_usage();
+                exit(1);
+            }
+        }
+    } else if arg1 == "cranelift" {
+        if args.len() < 4 {
+            eprintln!("Missing sub-command for 'cranelift'. Expected 'check', 'run', or 'build'.");
+            eprintln!();
+            print_usage();
+            exit(1);
+        }
+        let cranelift_action = args[3].as_str();
+        match cranelift_action {
+            "check" | "run" | "build" => {
+                // cek apakah arg berikutnya adalah nama linker
+                let (linker, remaining_args) = if args.len() > 4 && LINKERS.contains(&args[4].as_str()) {
+                    (Some(args[4].as_str()), args.iter().skip(5).map(|s| s.as_str()).collect::<Vec<_>>())
+                } else {
+                    (None, args.iter().skip(4).map(|s| s.as_str()).collect::<Vec<_>>())
+                };
+                handle_cranelift_action(cranelift_action, linker, &remaining_args);
+            }
+            _ => {
+                eprintln!("Unknown sub-command for 'cranelift': {}", cranelift_action);
+                eprintln!();
+                print_usage();
+                exit(1);
+            }
+        }
+    } else {
+        match arg1 {
+            "check" | "run" | "build" => {
+                // cek apakah arg berikutnya adalah nama linker
+                let (linker, remaining_args) = if args.len() > 3 && LINKERS.contains(&args[3].as_str()) {
+                    (Some(args[3].as_str()), args.iter().skip(4).map(|s| s.as_str()).collect::<Vec<_>>())
+                } else {
+                    (None, args.iter().skip(3).map(|s| s.as_str()).collect::<Vec<_>>())
+                };
+                handle_standard_action(arg1, linker, &remaining_args);
+            }
+            _ => {
+                eprintln!("Unknown command: {}", arg1);
+                eprintln!();
+                print_usage();
+                exit(1);
+            }
+        }
+    }
+}
