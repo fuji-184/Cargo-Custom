@@ -4,8 +4,10 @@ use std::process::{Command, exit};
 fn print_usage() {
     eprintln!("Usage:");
     eprintln!("  cargo custom [check|run|build] [options]");
+    eprintln!("  cargo custom [check|run|build] [wild|mold|lld] [options]");
     eprintln!("  cargo custom miri [check|run] [options]");
     eprintln!("  cargo custom cranelift [check|run|build] [options]");
+    eprintln!("  cargo custom cranelift [check|run|build] [wild|mold|lld] [options]");
     eprintln!("  cargo custom -h | --help");
 }
 
@@ -52,7 +54,49 @@ fn set_mimalloc_if_available(cmd: &mut Command) {
     }
 }
 
-fn get_base_rust_flags(use_cranelift: bool) -> String {
+fn resolve_linker(name: &str) -> Option<String> {
+    match name {
+        "wild" => {
+            if Command::new("wild").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
+                Some("-Clinker=clang -Clink-args=--ld-path=wild".to_string())
+            } else {
+                eprintln!("wild not found");
+                None
+            }
+        }
+        "mold" => {
+            if Command::new("mold").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
+                Some("-C link-arg=-fuse-ld=mold".to_string())
+            } else {
+                eprintln!("mold not found");
+                None
+            }
+        }
+        "lld" => {
+            if Command::new("lld").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
+                Some("-C link-arg=-fuse-ld=lld".to_string())
+            } else {
+                eprintln!("lld not found");
+                None
+            }
+        }
+        _ => None,
+    }
+}
+
+fn auto_linker() -> Option<String> {
+    if Command::new("wild").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
+        Some("-Clinker=clang -Clink-args=--ld-path=wild".to_string())
+    } else if Command::new("mold").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
+        Some("-C link-arg=-fuse-ld=mold".to_string())
+    } else if Command::new("lld").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
+        Some("-C link-arg=-fuse-ld=lld".to_string())
+    } else {
+        None
+    }
+}
+
+fn get_base_rust_flags(use_cranelift: bool, linker_override: Option<&str>) -> String {
     let mut flags = String::from(
         "
         -Zthreads=0
@@ -100,17 +144,12 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
         );
     }
     let mut clean_flags = flags.replace("\n", " ");
-    
-    let linker = if Command::new("wild").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
-        Some("-Clinker=clang -Clink-args=--ld-path=wild")
-    } else if Command::new("mold").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
-        Some("-C link-arg=-fuse-ld=mold")
-    } else if Command::new("lld").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
-        Some("-C link-arg=-fuse-ld=lld")
-    } else {
-        None
+
+    let linker = match linker_override {
+        Some(name) => resolve_linker(name),
+        None => auto_linker(),
     };
-    
+
     if let Some(flags) = linker {
         clean_flags.push_str(&format!(" {flags}"));
     }
@@ -125,11 +164,11 @@ fn set_sccache_if_available(cmd: &mut Command) {
     }
 }
 
-fn handle_standard_action(action: &str, remaining_args: &[&str]) {
+fn handle_standard_action(action: &str, linker: Option<&str>, remaining_args: &[&str]) {
     run_clear();
     let mut cmd = Command::new("cargo");
     cmd.arg(action);
-    let rust_flags = get_base_rust_flags(false);
+    let rust_flags = get_base_rust_flags(false, linker);
     cmd.env("RUSTFLAGS", rust_flags);
     cmd.env("CARGO_PROFILE_DEV_BUILD_OVERRIDE_OPT_LEVEL", &3.to_string());
     set_sccache_if_available(&mut cmd);
@@ -162,7 +201,7 @@ fn handle_miri_action(miri_action: &str, remaining_args: &[&str]) {
                       -Zmiri-provenance-gc=0 
                       -Zmiri-no-extra-rounding-error
 ".replace("\n", " ");
-    let rust_flags = get_base_rust_flags(false);
+    let rust_flags = get_base_rust_flags(false, None);
     cmd.env("MIRIFLAGS", miri_flags);
     cmd.env("RUSTFLAGS", rust_flags);
     set_mimalloc_if_available(&mut cmd);
@@ -180,11 +219,11 @@ fn handle_miri_action(miri_action: &str, remaining_args: &[&str]) {
     }
 }
 
-fn handle_cranelift_action(cranelift_action: &str, remaining_args: &[&str]) {
+fn handle_cranelift_action(cranelift_action: &str, linker: Option<&str>, remaining_args: &[&str]) {
     run_clear();
     let mut cmd = Command::new("cargo");
     cmd.arg(cranelift_action);
-    let rust_flags = get_base_rust_flags(true);
+    let rust_flags = get_base_rust_flags(true, linker);
     cmd.env("RUSTFLAGS", rust_flags);
     cmd.env("CARGO_PROFILE_DEV_BUILD_OVERRIDE_OPT_LEVEL", &3.to_string());
     cmd.env("CARGO_CACHE_RUSTC_INFO", &1.to_string());
@@ -203,6 +242,8 @@ fn handle_cranelift_action(cranelift_action: &str, remaining_args: &[&str]) {
         Err(_) => exit(1),
     }
 }
+
+const LINKERS: &[&str] = &["wild", "mold", "lld"];
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -225,48 +266,4 @@ fn main() {
         let miri_action = args[3].as_str();
         match miri_action {
             "check" | "run" => {
-                let remaining_args: Vec<&str> = args.iter().skip(4).map(|s| s.as_str()).collect();
-                handle_miri_action(miri_action, &remaining_args);
-            }
-            _ => {
-                eprintln!("Unknown sub-command for 'miri': {}", miri_action);
-                eprintln!();
-                print_usage();
-                exit(1);
-            }
-        }
-    } else if arg1 == "cranelift" {
-        if args.len() < 4 {
-            eprintln!("Missing sub-command for 'cranelift'. Expected 'check', 'run', or 'build'.");
-            eprintln!();
-            print_usage();
-            exit(1);
-        }
-        let cranelift_action = args[3].as_str();
-        match cranelift_action {
-            "check" | "run" | "build" => {
-                let remaining_args: Vec<&str> = args.iter().skip(4).map(|s| s.as_str()).collect();
-                handle_cranelift_action(cranelift_action, &remaining_args);
-            }
-            _ => {
-                eprintln!("Unknown sub-command for 'cranelift': {}", cranelift_action);
-                eprintln!();
-                print_usage();
-                exit(1);
-            }
-        }
-    } else {
-        match arg1 {
-            "check" | "run" | "build" => {
-                let remaining_args: Vec<&str> = args.iter().skip(3).map(|s| s.as_str()).collect();
-                handle_standard_action(arg1, &remaining_args);
-            }
-            _ => {
-                eprintln!("Unknown command: {}", arg1);
-                eprintln!();
-                print_usage();
-                exit(1);
-            }
-        }
-    }
-}
+                let
