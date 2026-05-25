@@ -89,7 +89,7 @@ fn auto_linker() -> Option<String> {
         Some("-Clinker=clang -Clink-args=--ld-path=wild".to_string())
     } else if Command::new("mold").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
         Some("-C link-arg=-fuse-ld=mold".to_string())
-    } else if Command::new("lld").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
+    } else if Command::new("ld.lld").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
         Some("-C link-arg=-fuse-ld=lld".to_string())
     } else {
         None
