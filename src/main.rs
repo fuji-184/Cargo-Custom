@@ -192,7 +192,7 @@ fn handle_cranelift_action(cranelift_action: &str, remaining_args: &[&str]) {
     cmd.env("CARGO_PROFILE_DEV_BUILD_OVERRIDE_OPT_LEVEL", &3.to_string());
     cmd.env("CARGO_CACHE_RUSTC_INFO", &1.to_string());
     set_sccache_if_available(&mut cmd);
-    //set_mimalloc_if_available(&mut cmd);
+    set_mimalloc_if_available(&mut cmd);
     cmd.args(remaining_args);
     let next_status = cmd.status();
     match next_status {
