@@ -59,7 +59,6 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
         -Zshare-generics=y
         -C debuginfo=0
         -C prefer-dynamic
-        -C link-arg=-Wl,--threads=0
         -C metadata=dev
         -Zinline-mir=off
         -Zproc-macro-backtrace=off
@@ -101,21 +100,19 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
         );
     }
     let mut clean_flags = flags.replace("\n", " ");
-    let mut mold_available = false;
-    if let Ok(status) = Command::new("mold").arg("--version").status() {
-        if status.success() {
-            mold_available = true;
-        }
-    }
-
-    if mold_available {
-        clean_flags.push_str(" -C link-arg=-fuse-ld=mold -C link-arg=-Wl,--threads=0");
+    
+    let linker = if Command::new("wild").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
+        Some("wild")
+    } else if Command::new("mold").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
+        Some("mold")
+    } else if Command::new("lld").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
+        Some("lld")
     } else {
-        if let Ok(status) = Command::new("lld").arg("--version").status() {
-            if status.success() {
-                clean_flags.push_str(" -C link-arg=-fuse-ld=lld -C link-arg=-Wl,--threads=0");
-            }
-        }
+        None
+    };
+    
+    if let Some(l) = linker {
+        clean_flags.push_str(&format!(" -C link-arg=-fuse-ld={l} -C link-arg=-Wl,--threads=0"));
     }
     clean_flags
 }
