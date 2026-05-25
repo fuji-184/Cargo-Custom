@@ -70,6 +70,12 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
 -Zmacro-backtrace=off
 -Zspan-debug=no
 -Znext-solver
+-Zrelax-elf-relocations=y
+-Zprint-mono-items=off
+-Zalways-encode-mir=no
+-Zmeta-stats=no
+-Zbinary-dep-depinfo=off
+-Zno-implied-bounds-compat=y
 
         ",
     );
