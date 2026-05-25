@@ -102,17 +102,17 @@ fn get_base_rust_flags(use_cranelift: bool) -> String {
     let mut clean_flags = flags.replace("\n", " ");
     
     let linker = if Command::new("wild").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
-        Some("wild")
+        Some("-C linker=clang -C link-arg=-fuse-ld=wild")
     } else if Command::new("mold").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
-        Some("mold")
+        Some("-C link-arg=-fuse-ld=mold")
     } else if Command::new("lld").arg("--version").status().map(|s| s.success()).unwrap_or(false) {
-        Some("lld")
+        Some("-C link-arg=-fuse-ld=lld")
     } else {
         None
     };
     
-    if let Some(l) = linker {
-        clean_flags.push_str(&format!(" -C link-arg=-fuse-ld={l} -C link-arg=-Wl,--threads=0"));
+    if let Some(flags) = linker {
+        clean_flags.push_str(&format!(" {flags}"));
     }
     clean_flags
 }
