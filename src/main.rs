@@ -181,6 +181,7 @@ fn handle_cranelift_action(cranelift_action: &str, remaining_args: &[&str]) {
     cmd.arg(cranelift_action);
     let rust_flags = get_base_rust_flags(true);
     cmd.env("RUSTFLAGS", rust_flags);
+    cmd.env("CARGO_PROFILE_DEV_BUILD_OVERRIDE_OPT_LEVEL", &3.to_string());
     set_sccache_if_available(&mut cmd);
     //set_mimalloc_if_available(&mut cmd);
     cmd.args(remaining_args);
